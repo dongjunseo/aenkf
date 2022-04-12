@@ -8,7 +8,7 @@
 !                       comparison the program also runs ensesmble    *
 !                       Kalman filter (EnKF) following Lorentzen and  *
 !                       Naeval (2011).                                *
-!                       Version Aug 08, 2021, by D.-J. Seo at UTA/    *
+!                       Version Apr 10, 2022, by D.-J. Seo at UTA/    *
 !                       Hydrology and Water Resources Lab             *
 !**********************************************************************
  
@@ -75,46 +75,19 @@ real, dimension (:,:), allocatable :: aic1trih,aic1trihai,hamatrixi
 real, dimension (:,:), allocatable :: tempmn
 
   dimension ett(24),randnu(1)
-  character basin(14)*5,mach*20,code*2,code1*1,code2*1,nwsid*5,&
+  character mach*20,code*2,c_hetero*1,c_strong*1,nwsid*5,&
             nwsidsac*20,nwsiduhg*20,map_name*132,qin1_name*132,&
-            c_beg*2,c_end*2,cindex*1,c_strong*1,rfc*2
+            rfc*2,cline*80
 !
-! Specify the 5-character NWS IDs of the basins 1 through 14 (see Seo 
-! et al. 2021) for details.
+! specify the 5-characer name of the forecast point
 !
-  data basin/'NFDC1','ABRN1','ICLI4','GTBM3','COLI2','DAVI3',&
-             'DLTC1','MONN7','NIMM5','GAXV2','TRYM7','MCNM6',&
-             'ORAI3','GRDN6'/
-!
-! Specify the beginning basin number for the DA run, [1,14].
-! 
-  call getarg(1,c_beg)
-  read(c_beg,'(i2)') iiibeg
-  write(6,*) 'beginning basin number ',iiibeg
-!
-! Specify the ending basin number for the DA run, [1,14], iiend >= 
-! iibeg.
-!
-  call getarg(2,c_end)
-  read(c_end,'(i2)') iiiend
-  write(6,*) 'ending basin number ',iiiend
+  call getarg(1,segment)
 !
 ! Use heteroscedastic modeling of observational uncertainty by default.
 !
-  ihetero=1
-  write(code1,'(i1)') ihetero
-!
-! if homoscedastic observation error variance is desired (primarily for
-! testing purposes), set ihetero to 0 above and specify the observation
-! error variance values for MAP (varp), MAPE (vare), additive error to 
-! total channel inflow (varw) and streamflow (varq) below.
-!
-  if(ihetero.eq.0) then
-  varp=100.          !in mm^2  (for 6hr depth)
-  vare=100.          !in mm^2  (for 6hr depth)
-  varw=100.          !in mm^2  (for 6hr depth)
-  varq=625.          !in cms^2 (for instantaneous flow)
-  endif
+  call getarg(2,c_hetero)
+  read(c_hetero,'(i1)') ihetero
+  write(6,*) 'ihetero ',ihetero
 !
 ! Specify 1 for strongly-constrained DA and 0 for weakly-constrained; 
 ! see Lee et al. (2019) and Shen et al. (2021) for explanation. It is
@@ -125,18 +98,38 @@ real, dimension (:,:), allocatable :: tempmn
   read(c_strong,'(i1)') istrong
   if(istrong.eq.1) write(6,*) 'strongly-constrained DA'
   if(istrong.eq.0) write(6,*) 'weakly-constrained DA'
-  write(code2,'(i1)') istrong
 !
 ! Build a character string for heteroscedastic/homoscedsastic
-! observation uncertainty (code1) and strongly- vs. weakly-constrained 
-! DA (code2).
+! observation uncertainty (c_hetero) and strongly- vs. weakly-constrained 
+! DA (c_strong).
 !
-  code=code1//code2
+  code=c_hetero//c_strong
 !
-! Specify the last character of the subdireectory for output files.
+! read aenkf parameters
 !
-  if(istrong.eq.0) cindex='0'          !subdirectory name is '/output0'
-  if(istrong.eq.1) cindex='1'          !subdirectory name is '/output1'
+   open(10,file='params_'//segment//'.in',status='old')
+   open(11,file='temp_'//segment//'.in',status='unknown')
+13 read(10,12,end=14) cline
+12 format(80a)
+   if(cline(1:1).eq.'!') go to 13
+   write(11,12) cline
+   go to 13
+14 close(10)
+   close(11)
+
+  open(10,file='temp_'//segment//'.in',status='old')
+  read(10,*) varp
+  read(10,*) vare
+  read(10,*) varw
+  read(10,*) varq
+  read(10,*) ns
+  read(10,*) nf
+  read(10,*) ifrq
+  read(10,*) jseed
+  read(10,*) iscale
+  read(10,*) fra_cold
+  read(10,*) fra_warm
+  close(10)
 !
 ! run EnKF and AEnKF when iaenkf=0 and iaenkf=1, respectively.
 !
@@ -146,38 +139,8 @@ real, dimension (:,:), allocatable :: tempmn
 ! 
   call system_clock(icount1, icount_rate1, icount_max1)
 !
-! Run DA for the range of basins selected, [iiibeg,iiiend]
-!
-  do iii=iiibeg,iiiend
-!
-! Specify the ensemble size.
-!
-  ns=200   
-!
-! Spcify the number of streamflow obs to be assimilated. The default is
-! 1, i.e, use the streamflow obs valid at prediction time (see Fig 1 of
-! Lee et al. 2019 for schematic of the assimilation window). for SAC-
-! UH, nf > 1 is not recommended as it is very likely to present
-! numerical singularity issues due to the highly correlated nature of 
-! the convolution operation of UH.
-!
-  nf=1
-!
-! Specify the sampling frequency of streamflow obs to be assimilated.
-! For nf=1, this parameter is irrelevant. If, e.g., nf=2, the stream-
-! flow obs valid at timesteps k and k-ifrq are used where k is
-! associated with the end of the assimilationn window or the prediction
-! time.
-!
-  ifrq=1  
-!
-! Specify the random number seed.
-!
-  jseed=11111
-!
 ! Get the 5-character NWS ID for this basin.
 !
-  segment=basin(iii)
   ncht=len_trim(segment)
   nwsid=segment(1:ncht)
   write(6,*) 'This segment is ',nwsid
@@ -194,7 +157,7 @@ real, dimension (:,:), allocatable :: tempmn
 !
   mach='run_'//segment(1:ncht)
   nchm=len_trim(mach)
-  path='./output'//cindex//'/'//segment(1:ncht)//'/'//&
+  path='./output'//c_strong//'/'//segment(1:ncht)//'/'//&
   mach(1:nchm)//'_enkf_'//code//'/'
   nchp=len_trim(path)
 
@@ -204,7 +167,7 @@ real, dimension (:,:), allocatable :: tempmn
 !
   mach='run_'//segment(1:ncht)
   nchm=len_trim(mach)
-  path='./output'//cindex//'/'//segment(1:ncht)//'/'//&
+  path='./output'//c_strong//'/'//segment(1:ncht)//'/'//&
   mach(1:nchm)//'_aenkf_'//code//'/'
   nchp=len_trim(path)
 
@@ -246,21 +209,15 @@ allocate(po(nv))
 ! Adjust at the scale of the entire assimilation window (i.e., uniform
 ! adjustment); this is the default.
 !
+  if(iscale.eq.0) then
   nhrp=nwin
   nhre=nwin
   nhrw=nwin
-!
-! Adjust at the scale of 2*timestep.
-!
-! nhrp=2
-! nhre=2
-! nhrw=2
-!
-! Adjust at the scale of the timestep.
-!
-! nhrp=1
-! nhre=1
-! nhrw=1
+  else
+  nhrp=iscale
+  nhre=iscale
+  nhrw=iscale
+  endif
 !
 ! If necessary, modify the assimilation window so that it is an integer
 ! multiple of the adjustment scale.
@@ -312,16 +269,8 @@ allocate(state1(nn))
 ! state.
 !
   do i=1,nn
-  frac(i)=0.01     !for get_perturbed_aug_states0 (for cold DA)
-  frad(i)=0.01     !for get_perturbed_aug_states1 (for warm DA) 
-!
-! For TRYM7 and MCNM6, use smaller dynamical errors based on 
-! sensitivity analysis.
-!
-  if(iii.eq.11.or.iii.eq.12) then
-  frac(i)=0.0001
-  frad(i)=0.0001
-  endif
+  frac(i)=fra_cold     !for get_perturbed_aug_states0 (for cold DA)
+  frad(i)=fra_warm     !for get_perturbed_aug_states1 (for warm DA) 
   enddo
 !
 ! Read the SAC parameters and initial conditions (IC).
@@ -506,32 +455,32 @@ allocate(itime(mdata))
 !
 ! for verifying observed flow,
 !
-  open(13,file=path(1:nchp)//segment(1:ncht)//'.fcst_obs_ctl',&
+  open(13,file=path(1:nchp)//segment(1:ncht)//'.fcst_obs',&
   status='unknown')
 !
 ! for single-valued streamflow prediction,
 !
-  open(14,file=path(1:nchp)//segment(1:ncht)//'.fcst_sngl_ctl',&
+  open(14,file=path(1:nchp)//segment(1:ncht)//'.fcst_sngl',&
   status='unknown')
 !
 ! for EnKF ensemble streamflow prediction,
 !
-  open(22,file=path(1:nchp)//segment(1:ncht)//'.fcst_enkf_ctl',&
+  open(22,file=path(1:nchp)//segment(1:ncht)//'.fcst_enkf',&
   status='unknown')
 !
 ! for base ensemble streamflow prediction,
 !
-  open(25,file=path(1:nchp)//segment(1:ncht)//'.fcst_base_ctl',&
+  open(25,file=path(1:nchp)//segment(1:ncht)//'.fcst_base',&
   status='unknown')
 !
 ! for AEnKF ensemble streamflow prediction,
 !
-  open(32,file=path(1:nchp)//segment(1:ncht)//'.fcst_aenkf_ctl',&
+  open(32,file=path(1:nchp)//segment(1:ncht)//'.fcst_aenkf',&
   status='unknown')
 !
 ! for diagnostics,
 !
-  open(42,file=path(1:nchp)//segment(1:ncht)//'.dfs',& 
+  open(42,file=path(1:nchp)//segment(1:ncht)//'.fcst_suppl',& 
   status='unknown')
 !
 ! for mean CRPS of base ensemble streamflow prediction,
@@ -1329,6 +1278,8 @@ c666 : do ialpha=1,ie
   endif 
 
   enddo c666
+
+  if(iaenkf.eq.1) then
 !
 ! Write the AEnKF ensemble mean prediction.
 !
@@ -1343,6 +1294,8 @@ c666 : do ialpha=1,ie
   write(42,*) itime(i),irise,ialpha_opt,alpha_opt,rdum1,&
   qobs0(i),rdum2,qsimf1_opt(nwin),q01,q10,q90,q99,qsimf0(nwin,1),&
   idum1,idum2,drise,b01,b10,b90,b99,sumu_topt,sumu1topt,sumu_sopt
+
+  endif
 !
 ! Copy the optimal ensemble state for the next time step; its
 ! feasibility is checked in subroutine get_perturbed_aug_states1 below.
@@ -1461,8 +1414,6 @@ deallocate(aic1trihai)
 deallocate(hamatrixi)
 deallocate(tempmn)
 
-  enddo !do iii loop
- 
   call system_clock(icount2, icount_rate2, icount_max2)
 !
 ! Calculate time elapsed in sec for EnKF.
@@ -3079,7 +3030,7 @@ real :: lztwm,lzfpm,lzfsm,lzpk,lzsk
 !
   open(10,file='SACSMA_'//nwsidsac(1:ncs)//'_UpdateStates.xml',&
   status='old')
-
+write(6,*) 'opened'
   open(20,file=nwsid//'.deck1_'//c_strong,status='unknown')
 
 c70 : do i=1,10000

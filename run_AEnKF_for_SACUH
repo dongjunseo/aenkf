@@ -1,4 +1,4 @@
-./a.out 4 4 0 > out40 &
-./a.out 5 5 0 > out50 &
-./a.out 7 7 0 > out70 &
-./a.out 8 8 0 > out80  
+./a.out COLI2 1 0 > capture_COLI2 &
+./a.out DLTC1 1 0 > capture_DLTC1 &
+./a.out GTBM3 1 0 > capture_GTBM3 &
+./a.out MONN7 1 0 > capture_MONN7  

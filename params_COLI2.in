@@ -1,0 +1,36 @@
+! Observation error variance in mm^2 for 6-hr mean areal precipitation (MAP).
+! Used for homoscedastic option only and ignored for the default 
+! heteroscedastic option.
+100.
+! Observation error variance in mm^2 for 6-hr mean areal potential evapo-
+! transpiration (MAPE). Used for homoscedastic option only.
+100.
+! (Pseudo-) observation error variance in mm^2 for 6-hr runoff depth, i.e.,
+! the Total Channel Inflow (TCI) in SAC.
+100.
+! Observation error variance in cms^2 for instantaneous discharge.
+625.
+! Ensemble size (i.e., the number of ensemble members used).
+200
+! Number of streamflow observations used within the assimilation window. For
+! SACUH, the default is 1.
+1
+! Sampling frequency of streamflow observations to be assimilated. For SACUH,
+! the default is 1.
+1
+! Random number seed.
+11111
+! Option for subdivision of the assimilation window for construction of
+! a higher temporal-resolution control vector. If this option is set to 0, no
+! subdivision is used and the control vectors for MAP, MAPE and TCI are
+! adjusted uniformly over the entire assimilation window. if this option is
+! set to a positive integer, it specifies the length of the equally subdivided
+! window in hrs. The default is 0, i.e., do not subdivide.
+0 
+! Perturbation factor for cold data assimilation (DA) run. The Default for
+! SACUH is 0.01, i.e., the variance of the perturbation is 1% of value of
+! the state variable.
+0.01
+! Perturbation factor for warm DA run. The default for SACUH is 0.01.
+0.01
+! End of file

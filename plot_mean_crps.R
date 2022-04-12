@@ -31,7 +31,7 @@ if(jj == 0) {
 }
 
 outfile1<-paste('mean_crps_',cjd,'.jpg',sep='')
-infile2<-paste('./output',id,'/',cjd,'/run_',cjd,'_aenkf_',ci,cj,'/',cjd,'.dfs',sep='')
+infile2<-paste('./output',id,'/',cjd,'/run_',cjd,'_aenkf_',ci,cj,'/',cjd,'.fcst_suppl',sep='')
 big<-scan(infile2,list(it=0,irise=0,ia=0,aopt=0,crps=0,qo=0,dfs=0,qda=0,q1=0,q10=0,q90=0,q99=0,qbe=0,nneg1=0,nneg2=0,drise=0,b1=0,b10=0,b90=0,b99=0,sumu_t=0,sumu1t=0,sumu_s=0))
 it<-big$it
 irise<-big$irise
@@ -45,14 +45,14 @@ qbe<-big$qbe
 drise<-big$drise
 ctitle<-paste(rfc,' - ',cjd,sep='')
 
-infile1<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.fcst_obs_ctl',sep='')
-infile2<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.fcst_base_ctl',sep='')
-infile3<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.fcst_enkf_ctl',sep='')
-infile4<-paste('./output',id,'/',cjd,'/run_',cjd,'_aenkf_',ci,cj,'/',cjd,'.fcst_aenkf_ctl',sep='')
+infile1<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.fcst_obs',sep='')
+infile2<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.fcst_base',sep='')
+infile3<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.fcst_enkf',sep='')
+infile4<-paste('./output',id,'/',cjd,'/run_',cjd,'_aenkf_',ci,cj,'/',cjd,'.fcst_aenkf',sep='')
 infile5<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.crps_base',sep='')
 infile6<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.crps_enkf',sep='')
 infile7<-paste('./output',id,'/',cjd,'/run_',cjd,'_aenkf_',ci,cj,'/',cjd,'.crps_aenkf',sep='')
-infile8<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.fcst_sngl_ctl',sep='')
+infile8<-paste('./output',id,'/',cjd,'/run_',cjd,'_enkf_',ci,cj,'/',cjd,'.fcst_sngl',sep='')
 
 qobs<-read.table(infile1)
 qsim<-read.table(infile2)
